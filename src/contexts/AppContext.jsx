@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react'
+import React, { createContext, useContext, useReducer, useEffect } from 'react'
 
 const AppContext = createContext()
 
@@ -16,6 +16,8 @@ const initialState = {
   selectedSubtitles: [],
   downloads: [],
   searchHistory: [],
+  uploadedFiles: [],
+  selectedSubtitlesForFiles: new Set(),
   preferences: {
     defaultLanguage: 'en',
     downloadPath: '',
@@ -103,10 +105,54 @@ function appReducer(state, action) {
         selectedSubtitles: []
       }
 
+    case 'SET_UPLOADED_FILES':
+      return {
+        ...state,
+        uploadedFiles: action.payload
+      }
+
+    case 'ADD_UPLOADED_FILES':
+      return {
+        ...state,
+        uploadedFiles: [...state.uploadedFiles, ...action.payload]
+      }
+
+    case 'REMOVE_UPLOADED_FILE':
+      return {
+        ...state,
+        uploadedFiles: state.uploadedFiles.filter(file => file.id !== action.payload),
+        selectedSubtitlesForFiles: new Set([...state.selectedSubtitlesForFiles].filter(id => !id.startsWith(action.payload)))
+      }
+
+    case 'CLEAR_UPLOADED_FILES':
+      return {
+        ...state,
+        uploadedFiles: [],
+        selectedSubtitlesForFiles: new Set()
+      }
+
+    case 'SET_SELECTED_SUBTITLES_FOR_FILES':
+      return {
+        ...state,
+        selectedSubtitlesForFiles: action.payload
+      }
+
+    case 'UPDATE_UPLOADED_FILE':
+      return {
+        ...state,
+        uploadedFiles: state.uploadedFiles.map(file =>
+          file.id === action.payload.id
+            ? { ...file, ...action.payload.updates }
+            : file
+        )
+      }
+
     default:
       return state
   }
 }
+
+const STORAGE_KEY = 'opensubtitles_uploaded_files'
 
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState)
@@ -152,6 +198,52 @@ export const AppProvider = ({ children }) => {
     dispatch({ type: 'CLEAR_SEARCH' })
   }
 
+  const setUploadedFiles = (files) => {
+    dispatch({ type: 'SET_UPLOADED_FILES', payload: files })
+  }
+
+  const addUploadedFiles = (files) => {
+    dispatch({ type: 'ADD_UPLOADED_FILES', payload: files })
+  }
+
+  const removeUploadedFile = (fileId) => {
+    dispatch({ type: 'REMOVE_UPLOADED_FILE', payload: fileId })
+  }
+
+  const clearUploadedFiles = () => {
+    dispatch({ type: 'CLEAR_UPLOADED_FILES' })
+  }
+
+  const setSelectedSubtitlesForFiles = (selections) => {
+    dispatch({ type: 'SET_SELECTED_SUBTITLES_FOR_FILES', payload: selections })
+  }
+
+  const updateUploadedFile = (fileId, updates) => {
+    dispatch({ type: 'UPDATE_UPLOADED_FILE', payload: { id: fileId, updates } })
+  }
+
+  // Load uploaded files from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedFiles = localStorage.getItem(STORAGE_KEY)
+      if (savedFiles) {
+        const parsedFiles = JSON.parse(savedFiles)
+        setUploadedFiles(parsedFiles)
+      }
+    } catch (error) {
+      console.error('Error loading saved files:', error)
+    }
+  }, [])
+
+  // Save uploaded files to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.uploadedFiles))
+    } catch (error) {
+      console.error('Error saving files:', error)
+    }
+  }, [state.uploadedFiles])
+
   const value = {
     ...state,
     // Actions
@@ -164,7 +256,13 @@ export const AppProvider = ({ children }) => {
     removeDownload,
     updatePreferences,
     updateUI,
-    clearSearch
+    clearSearch,
+    setUploadedFiles,
+    addUploadedFiles,
+    removeUploadedFile,
+    clearUploadedFiles,
+    setSelectedSubtitlesForFiles,
+    updateUploadedFile
   }
 
   return (

@@ -28,7 +28,7 @@
     "@tauri-apps/plugin-process": "^2.0.0",
     "@tauri-apps/plugin-dialog": "^2.0.0",
     "crypto-js": "^4.1.1",
-    "guessit-js": "^1.1.1"
+    "guessit-js": "^1.0.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0",

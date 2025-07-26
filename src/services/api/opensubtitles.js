@@ -1,5 +1,8 @@
-const BASE_URL = 'https://api.opensubtitles.com/api/v1'
+const BASE_URL = import.meta.env.DEV ? 'http://localhost:3001/api/v1' : 'https://api.opensubtitles.com/api/v1'
 const API_KEY = import.meta.env.VITE_OPENSUBTITLES_API_KEY || ''
+
+// Check if we're in a Tauri environment
+const isTauri = typeof window !== 'undefined' && window.__TAURI__
 
 class OpenSubtitlesAPI {
   constructor() {
@@ -11,9 +14,14 @@ class OpenSubtitlesAPI {
   // Get base headers for all requests
   getHeaders(includeAuth = false) {
     const headers = {
-      'Api-Key': API_KEY,
-      'User-Agent': 'OpenSubtitles Downloader Pro v1.0',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+
+    // Only add API key when not using proxy
+    if (!import.meta.env.DEV) {
+      headers['Api-Key'] = API_KEY
+      headers['User-Agent'] = 'OpenSubtitlesDownloader v1.0.0'
     }
 
     if (includeAuth && this.token) {
@@ -44,12 +52,18 @@ class OpenSubtitlesAPI {
   }
 
   async _executeRequest(url, options = {}) {
-    const response = await fetch(url, {
+    let fetchFunction = fetch
+    const headers = {
+      ...this.getHeaders(options.requireAuth),
+      ...options.headers
+    }
+    
+    // In development, the proxy will handle User-Agent
+    // In production, we need to handle this differently
+    
+    const response = await fetchFunction(url, {
       ...options,
-      headers: {
-        ...this.getHeaders(options.requireAuth),
-        ...options.headers
-      }
+      headers
     })
 
     if (response.status === 429) {
@@ -149,7 +163,19 @@ class OpenSubtitlesAPI {
 
   // Get subtitle file content
   async getSubtitleContent(downloadLink) {
-    const response = await fetch(downloadLink)
+    let fetchFunction = fetch
+    
+    // Try to use Tauri fetch if available
+    if (isTauri) {
+      try {
+        const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+        fetchFunction = tauriFetch
+      } catch (e) {
+        // Fall back to browser fetch
+      }
+    }
+    
+    const response = await fetchFunction(downloadLink)
     if (!response.ok) {
       throw new Error(`Failed to download subtitle: ${response.status}`)
     }

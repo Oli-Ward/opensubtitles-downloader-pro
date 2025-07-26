@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useApi } from '../contexts/ApiContext'
 import { useApp } from '../contexts/AppContext'
-import SearchForm from './SearchForm'
+import FileUpload from './FileUpload'
 import SearchResults from './SearchResults'
 import DownloadQueue from './DownloadQueue'
 import LoginDialog from './LoginDialog'
@@ -12,19 +12,24 @@ const MainDownloader = () => {
   const { isAuthenticated } = useApi()
   const { ui, searchResults, downloads } = useApp()
   const [currentTab, setCurrentTab] = useState('search')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <div className="flex">
-        <Sidebar currentTab={currentTab} onTabChange={setCurrentTab} />
+        <Sidebar 
+          currentTab={currentTab} 
+          onTabChange={setCurrentTab}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
         
-        <main className="flex-1 p-6">
+        <main className={`flex-1 p-6 transition-all duration-300 ${sidebarCollapsed ? 'ml-0' : ''}`}>
           {currentTab === 'search' && (
             <div className="space-y-6">
-              <SearchForm />
-              {searchResults.length > 0 && <SearchResults />}
+              <FileUpload />
             </div>
           )}
           
