@@ -1,0 +1,43 @@
+{
+  "name": "opensubtitles-downloader-pro",
+  "version": "1.0.0",
+  "description": "OpenSubtitles Downloader PRO - Professional subtitle downloader",
+  "type": "module",
+  "main": "index.html",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/opensubtitles-downloader-pro",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/**/*.test.js",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "update-version": "node scripts/update-version.js",
+    "update-readme-version": "node scripts/update-readme-version.js"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "@tauri-apps/api": "^1.2.0",
+    "@tauri-apps/plugin-fs": "^2.0.0",
+    "@tauri-apps/plugin-http": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-os": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "crypto-js": "^4.1.1",
+    "guessit-js": "^1.1.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.2.7",
+    "vite": "^4.1.0"
+  }
+}
