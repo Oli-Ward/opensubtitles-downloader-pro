@@ -10,8 +10,10 @@ const VideoInfoDisplay = ({ fileData, selectedSubtitle = null }) => {
   useEffect(() => {
     setLoading(true)
     
-    console.log('VideoInfoDisplay - fileData.omdbInfo:', fileData.omdbInfo)
-    console.log('VideoInfoDisplay - fileData.movieInfo:', fileData.movieInfo)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('VideoInfoDisplay - fileData.omdbInfo:', fileData.omdbInfo)
+      console.log('VideoInfoDisplay - fileData.movieInfo:', fileData.movieInfo)
+    }
     
     if (fileData.omdbInfo && !fileData.omdbInfo.error) {
       // Use the OMDB data fetched from FileUpload
@@ -124,15 +126,23 @@ const VideoInfoDisplay = ({ fileData, selectedSubtitle = null }) => {
               )}
               
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-                <span className="whitespace-nowrap">{movieDetails.type === 'series' ? movieDetails.yearRange : movieDetails.year}</span>
-                <span className="text-gray-400 hidden sm:inline">•</span>
-                <span className="whitespace-nowrap">{movieDetails.duration}</span>
-                <span className="text-gray-400 hidden sm:inline">•</span>
-                <span className="whitespace-nowrap">{movieDetails.rated}</span>
-                {movieDetails.type === 'episode' && (
+                {movieDetails.type === 'episode' ? (
                   <>
+                    <span className="whitespace-nowrap">{movieDetails.released}</span>
+                    <span className="text-gray-400 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">{movieDetails.duration}</span>
+                    <span className="text-gray-400 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">{movieDetails.rated}</span>
                     <span className="text-gray-400 hidden sm:inline">•</span>
                     <span className="whitespace-nowrap bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">Episode</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="whitespace-nowrap">{movieDetails.type === 'series' ? movieDetails.yearRange : movieDetails.year}</span>
+                    <span className="text-gray-400 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">{movieDetails.duration}</span>
+                    <span className="text-gray-400 hidden sm:inline">•</span>
+                    <span className="whitespace-nowrap">{movieDetails.rated}</span>
                   </>
                 )}
               </div>
@@ -166,30 +176,37 @@ const VideoInfoDisplay = ({ fileData, selectedSubtitle = null }) => {
           )}
 
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Director</label>
-              <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.director}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.country}</p>
-            </div>
-          </div>
+          {/* For episodes, show episode-specific details; for movies/series show general details */}
+          {movieDetails.type !== 'episode' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Director</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.director}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.country}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cast</label>
+                <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.actors}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Awards</label>
+                <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.awards}</p>
+              </div>
+            </>
+          )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plot</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {movieDetails.type === 'episode' ? 'Episode Plot' : 'Plot'}
+            </label>
             <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2 min-h-[60px]">{movieDetails.plot}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Cast</label>
-            <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.actors}</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Awards</label>
-            <p className="text-sm text-gray-900 bg-gray-50 rounded px-3 py-2">{movieDetails.awards}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -56,7 +56,9 @@ class OMDBApi {
 
       return movieDetails
     } catch (error) {
-      console.error('Error fetching from OMDB:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching from OMDB:', error)
+      }
       
       // Return fallback data on error
       return {
@@ -81,7 +83,9 @@ class OMDBApi {
   // Transform OMDB response to our format
   transformOMDBData(omdbData) {
     // Debug: Log the raw OMDB response
-    console.log('Raw OMDB Data:', JSON.stringify(omdbData, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Raw OMDB Data:', JSON.stringify(omdbData, null, 2))
+    }
     
     const transformed = {
       title: omdbData.Title || 'Unknown',
@@ -107,7 +111,9 @@ class OMDBApi {
       boxOffice: omdbData.BoxOffice || 'N/A'
     }
     
-    console.log('Transformed OMDB Data:', JSON.stringify(transformed, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Transformed OMDB Data:', JSON.stringify(transformed, null, 2))
+    }
     return transformed
   }
 
@@ -142,7 +148,9 @@ class OMDBApi {
 
       return data.Search || []
     } catch (error) {
-      console.error('Error searching OMDB:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error searching OMDB:', error)
+      }
       return []
     }
   }
@@ -189,7 +197,9 @@ class OMDBApi {
 
       return movieDetails
     } catch (error) {
-      console.error('Error fetching from OMDB by IMDb ID:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching from OMDB by IMDb ID:', error)
+      }
       throw error
     }
   }
@@ -248,15 +258,69 @@ class OMDBApi {
 
       return episodeDetails
     } catch (error) {
-      console.error('Error fetching episode from OMDB:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching episode from OMDB:', error)
+      }
+      throw error
+    }
+  }
+
+  // Get series information by title
+  async getSeriesInfo(title) {
+    const cacheKey = `series_${title}`
+    
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey)
+      if (Date.now() - cached.timestamp < 3600000) { // 1 hour cache
+        return cached.data
+      }
+    }
+
+    try {
+      const params = new URLSearchParams({
+        apikey: OMDB_API_KEY,
+        t: title,
+        type: 'series',
+        plot: 'full',
+        r: 'json'
+      })
+
+      const response = await fetch(`${OMDB_BASE_URL}?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.Response === 'False') {
+        throw new Error(data.Error || 'Series not found')
+      }
+
+      const seriesDetails = this.transformOMDBData(data)
+
+      // Cache the result
+      this.cache.set(cacheKey, {
+        data: seriesDetails,
+        timestamp: Date.now()
+      })
+
+      return seriesDetails
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching series from OMDB:', error)
+      }
       throw error
     }
   }
 
   // Transform episode-specific OMDB data
   transformEpisodeData(omdbData, season, episode) {
-    console.log('Transforming episode data - Season:', season, 'Episode:', episode)
-    console.log('Episode OMDB Data:', JSON.stringify(omdbData, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Transforming episode data - Season:', season, 'Episode:', episode)
+      console.log('Episode OMDB Data:', JSON.stringify(omdbData, null, 2))
+    }
     
     const baseData = this.transformOMDBData(omdbData)
     
@@ -272,7 +336,9 @@ class OMDBApi {
       seriesImdbID: omdbData.seriesID || 'Unknown'
     }
     
-    console.log('Final episode data:', JSON.stringify(episodeData, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Final episode data:', JSON.stringify(episodeData, null, 2))
+    }
     return episodeData
   }
 

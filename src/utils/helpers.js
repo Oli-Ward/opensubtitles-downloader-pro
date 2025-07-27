@@ -1,6 +1,6 @@
 // Generate unique ID
 export const generateId = () => {
-  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36)
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36)
 }
 
 // Format file size
@@ -176,7 +176,9 @@ export const storage = {
     try {
       localStorage.setItem(key, JSON.stringify(value))
     } catch (error) {
-      console.error('Failed to save to localStorage:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to save to localStorage:', error)
+      }
     }
   },
   
@@ -184,7 +186,9 @@ export const storage = {
     try {
       localStorage.removeItem(key)
     } catch (error) {
-      console.error('Failed to remove from localStorage:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to remove from localStorage:', error)
+      }
     }
   }
 }
