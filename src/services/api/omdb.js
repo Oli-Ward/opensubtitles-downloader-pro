@@ -10,8 +10,8 @@ class OMDBApi {
   }
 
   // Get movie/show details by title and year
-  async getMovieDetails(title, year = null, season = null, episode = null) {
-    const cacheKey = `${title}_${year || 'no_year'}_${season || 'no_season'}_${episode || 'no_episode'}`
+  async getMovieDetails(title, year = null) {
+    const cacheKey = `${title}_${year || 'no_year'}`
     
     // Check cache first
     if (this.cache.has(cacheKey)) {
@@ -22,11 +22,6 @@ class OMDBApi {
     }
 
     try {
-      // If season and episode are provided, get specific episode info
-      if (season && episode) {
-        return await this.getEpisodeDetails(title, season, episode, year)
-      }
-
       const params = new URLSearchParams({
         apikey: OMDB_API_KEY,
         t: title,
@@ -85,29 +80,35 @@ class OMDBApi {
 
   // Transform OMDB response to our format
   transformOMDBData(omdbData) {
-    return {
+    // Debug: Log the raw OMDB response
+    console.log('Raw OMDB Data:', JSON.stringify(omdbData, null, 2))
+    
+    const transformed = {
       title: omdbData.Title || 'Unknown',
       year: omdbData.Year || 'Unknown',
       yearRange: omdbData.Type === 'series' ? omdbData.Year : omdbData.Year,
       duration: omdbData.Runtime || 'Unknown',
       genre: omdbData.Genre || 'Unknown',
-      imdbRating: omdbData.imdbRating !== 'N/A' ? omdbData.imdbRating : 'N/A',
+      imdbRating: (omdbData.imdbRating || omdbData.ImdbRating) && (omdbData.imdbRating || omdbData.ImdbRating) !== 'N/A' ? (omdbData.imdbRating || omdbData.ImdbRating) : 'N/A',
       plot: omdbData.Plot || 'Plot information not available',
       actors: omdbData.Actors || 'Cast information not available',
       country: omdbData.Country || 'Unknown',
-      awards: omdbData.Awards || 'No awards information',
+      awards: omdbData.Awards && omdbData.Awards !== 'N/A' ? omdbData.Awards : 'No awards information',
       imdbID: omdbData.imdbID || 'Unknown',
       type: omdbData.Type || 'movie',
-      poster: omdbData.Poster !== 'N/A' ? omdbData.Poster : null,
-      director: omdbData.Director || 'Unknown',
+      poster: omdbData.Poster && omdbData.Poster !== 'N/A' && omdbData.Poster !== 'undefined' ? omdbData.Poster : null,
+      director: omdbData.Director && omdbData.Director !== 'N/A' ? omdbData.Director : 'Unknown',
       writer: omdbData.Writer || 'Unknown',
       language: omdbData.Language || 'Unknown',
       rated: omdbData.Rated || 'Not Rated',
       released: omdbData.Released || 'Unknown',
       metascore: omdbData.Metascore || 'N/A',
-      imdbVotes: omdbData.imdbVotes || 'N/A',
+      imdbVotes: omdbData.imdbVotes || omdbData.ImdbVotes || 'N/A',
       boxOffice: omdbData.BoxOffice || 'N/A'
     }
+    
+    console.log('Transformed OMDB Data:', JSON.stringify(transformed, null, 2))
+    return transformed
   }
 
   // Search for movies/shows
@@ -191,6 +192,88 @@ class OMDBApi {
       console.error('Error fetching from OMDB by IMDb ID:', error)
       throw error
     }
+  }
+
+  // Get episode details using series IMDb ID and season/episode numbers
+  async getEpisodeBySeriesId(seriesImdbId, season, episode) {
+    const cacheKey = `episode_${seriesImdbId}_S${season}E${episode}`
+    
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey)
+      if (Date.now() - cached.timestamp < 3600000) { // 1 hour cache
+        return cached.data
+      }
+    }
+
+    try {
+      const params = new URLSearchParams({
+        apikey: OMDB_API_KEY,
+        i: seriesImdbId,
+        Season: season.toString(),
+        Episode: episode.toString(),
+        plot: 'full',
+        r: 'json'
+      })
+
+      const response = await fetch(`${OMDB_BASE_URL}?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error(`OMDB API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.Response === 'False') {
+        // If episode not found, try to get series info instead
+        const seriesData = await this.getMovieByImdbId(seriesImdbId)
+        return {
+          ...seriesData,
+          episodeNumber: episode,
+          seasonNumber: season,
+          episodeName: `Season ${season}, Episode ${episode}`,
+          type: 'episode',
+          plot: `Episode ${episode} of ${seriesData.title}`,
+          isSeriesFallback: true
+        }
+      }
+
+      const episodeDetails = this.transformEpisodeData(data, season, episode)
+
+      // Cache the result
+      this.cache.set(cacheKey, {
+        data: episodeDetails,
+        timestamp: Date.now()
+      })
+
+      return episodeDetails
+    } catch (error) {
+      console.error('Error fetching episode from OMDB:', error)
+      throw error
+    }
+  }
+
+  // Transform episode-specific OMDB data
+  transformEpisodeData(omdbData, season, episode) {
+    console.log('Transforming episode data - Season:', season, 'Episode:', episode)
+    console.log('Episode OMDB Data:', JSON.stringify(omdbData, null, 2))
+    
+    const baseData = this.transformOMDBData(omdbData)
+    
+    const episodeData = {
+      ...baseData,
+      episodeNumber: episode,
+      seasonNumber: season,
+      episodeName: omdbData.Title || `Episode ${episode}`,
+      seriesTitle: omdbData.SeriesTitle || baseData.title,
+      type: 'episode',
+      // Episode-specific fields
+      episodeImdbID: omdbData.imdbID,
+      seriesImdbID: omdbData.seriesID || 'Unknown'
+    }
+    
+    console.log('Final episode data:', JSON.stringify(episodeData, null, 2))
+    return episodeData
   }
 
   // Clear cache

@@ -1,3 +1,5 @@
+import omdbApi from './omdb'
+
 const BASE_URL = import.meta.env.DEV ? 'http://localhost:3001/api/v1' : 'https://api.opensubtitles.com/api/v1'
 const API_KEY = import.meta.env.VITE_OPENSUBTITLES_API_KEY || ''
 
@@ -9,6 +11,7 @@ class OpenSubtitlesAPI {
     this.token = null
     this.cache = new Map()
     this.requestQueue = new Map()
+    this.omdbApi = omdbApi
   }
 
   // Get base headers for all requests
